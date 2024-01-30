@@ -9,8 +9,8 @@ const endButton = document.getElementById('endButton');
 const wsEndpoint = 'ws://localhost:8080/ws';
 
 // Connect to WebSocket server
-function connectToWebSocket() {
-  ws = new WebSocket(wsEndpoint);
+function connectToWebSocket(roomId) {
+  ws = new WebSocket(`${wsEndpoint}?roomID=${roomId}`);
 
   ws.onopen = () => {
     console.log('WebSocket connected');
@@ -51,32 +51,35 @@ function handleCandidate(candidate) {
 
 // Start call
 startButton.addEventListener('click', async () => {
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    localVideo.srcObject = localStream;
+  const roomId = prompt('Enter room ID:');
+  if (roomId) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      localVideo.srcObject = localStream;
 
-    connectToWebSocket();
+      connectToWebSocket(roomId);
 
-    peerConnection = new RTCPeerConnection();
-    localStream
-      .getTracks()
-      .forEach((track) => peerConnection.addTrack(track, localStream));
+      peerConnection = new RTCPeerConnection();
+      localStream
+        .getTracks()
+        .forEach((track) => peerConnection.addTrack(track, localStream));
 
-    peerConnection.ontrack = (event) => {
-      remoteStream = event.streams[0];
-      remoteVideo.srcObject = remoteStream;
-    };
+      peerConnection.ontrack = (event) => {
+        remoteStream = event.streams[0];
+        remoteVideo.srcObject = remoteStream;
+      };
 
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
 
-    // send offer to backend using websocket
-    ws.send(JSON.stringify({ type: 'offer', offer }));
-  } catch (error) {
-    console.error('Error accessing media devices or creating offer:', error);
+      // send offer to backend using websocket
+      ws.send(JSON.stringify({ type: 'offer', offer }));
+    } catch (error) {
+      console.error('Error accessing media devices or creating offer:', error);
+    }
   }
 });
 
