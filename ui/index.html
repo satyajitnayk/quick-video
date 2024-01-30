@@ -11,8 +11,11 @@
 <body>
   <h1>Simple Video Chat</h1>
   <div id="videos">
-    <video id="localVideo" autoplay muted></video>
-    <video id="remoteVideo" autoplay></video>
+    <div class="video-container">
+      <video id="localVideo" autoplay muted></video>
+      <span class="video-label">Local Video</span>
+    </div>
+    <!-- Remote video streams will be dynamically added here -->
   </div>
   <button id="startButton">Start Call</button>
   <button id="endButton">End Call</button>

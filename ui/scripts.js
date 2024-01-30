@@ -1,7 +1,7 @@
 let localStream, remoteStream, peerConnection, ws;
 
+const videosContainer = document.getElementById('videos');
 const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
 const startButton = document.getElementById('startButton');
 const endButton = document.getElementById('endButton');
 
@@ -67,9 +67,18 @@ startButton.addEventListener('click', async () => {
         .getTracks()
         .forEach((track) => peerConnection.addTrack(track, localStream));
 
+      // Handle incoming tracks
       peerConnection.ontrack = (event) => {
+        const remoteVideoContainer = document.createElement('div');
+        remoteVideoContainer.classList.add('remote-video'); // Add a class for styling
+
+        const remoteVideo = document.createElement('video');
         remoteStream = event.streams[0];
         remoteVideo.srcObject = remoteStream;
+        remoteVideo.autoplay = true;
+
+        remoteVideoContainer.appendChild(remoteVideo);
+        videosContainer.appendChild(remoteVideoContainer);
       };
 
       const offer = await peerConnection.createOffer();
@@ -86,8 +95,6 @@ startButton.addEventListener('click', async () => {
 // End call
 endButton.addEventListener('click', () => {
   localStream.getTracks().forEach((track) => track.stop());
-  localVideo.srcObject = null;
-  remoteVideo.srcObject = null;
   if (peerConnection) {
     peerConnection.close();
   }
@@ -95,4 +102,8 @@ endButton.addEventListener('click', () => {
   if (ws) {
     ws.close();
   }
+
+  // Clear all remote video streams from the container
+  const remoteVideos = document.querySelectorAll('.remote-video');
+  remoteVideos.forEach((video) => video.remove());
 });
