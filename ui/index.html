@@ -9,16 +9,22 @@
 </head>
 
 <body>
-  <h1>Simple Video Chat</h1>
-  <div id="videos">
-    <div class="video-container">
-      <video id="localVideo" autoplay muted></video>
-      <span class="video-label">Local Video</span>
+  <div class="main-container">
+    <h1>Simple Video Chat</h1>
+    <h4 class="roomId-header"></h4>
+    <div class="videos">
+      <div class="video-container">
+        <video class="local-video" autoplay muted></video>
+        <span class="video-label">Local Video</span>
+      </div>
+      <!-- Remote video streams will be dynamically added here -->
     </div>
-    <!-- Remote video streams will be dynamically added here -->
+    <button class="start-button">Start Call</button>
+    <button class="end-button">End Call</button>
+
+
   </div>
-  <button id="startButton">Start Call</button>
-  <button id="endButton">End Call</button>
+
 </body>
 <script src="scripts.js"></script>
 

@@ -1,9 +1,10 @@
 let localStream, remoteStream, peerConnection, ws;
 
-const videosContainer = document.getElementById('videos');
-const localVideo = document.getElementById('localVideo');
-const startButton = document.getElementById('startButton');
-const endButton = document.getElementById('endButton');
+const videosContainer = document.querySelector('.videos');
+const localVideo = document.querySelector('.local-video');
+const startButton = document.querySelector('.start-button');
+const endButton = document.querySelector('.end-button');
+const roomIdHeader = document.querySelector('.roomId-header');
 
 // WebSocket endpoint URL
 const wsEndpoint = 'ws://localhost:8080/ws';
@@ -49,10 +50,19 @@ function handleCandidate(candidate) {
   }
 }
 
+function addRoomIdToHeader(roomId) {
+  roomIdHeader.innerHTML = roomId;
+}
+
+function removeRoomIdFromHeader() {
+  roomIdHeader.innerHTML = '';
+}
+
 // Start call
 startButton.addEventListener('click', async () => {
   const roomId = prompt('Enter room ID:');
   if (roomId) {
+    addRoomIdToHeader(roomId);
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -69,6 +79,7 @@ startButton.addEventListener('click', async () => {
 
       // Handle incoming tracks
       peerConnection.ontrack = (event) => {
+        console.log('Incoming remote tracks');
         const remoteVideoContainer = document.createElement('div');
         remoteVideoContainer.classList.add('remote-video'); // Add a class for styling
 
@@ -94,7 +105,19 @@ startButton.addEventListener('click', async () => {
 
 // End call
 endButton.addEventListener('click', () => {
-  localStream.getTracks().forEach((track) => track.stop());
+  if (localStream) {
+    stopStreamTracks(localStream);
+  }
+
+  if (localStream.srcObject) {
+    stopStreamTracks(localVideo.srcObject);
+    localVideo.srcObject = null;
+  }
+
+  if (remoteStream) {
+    stopStreamTracks(remoteStream);
+  }
+
   if (peerConnection) {
     peerConnection.close();
   }
@@ -106,4 +129,13 @@ endButton.addEventListener('click', () => {
   // Clear all remote video streams from the container
   const remoteVideos = document.querySelectorAll('.remote-video');
   remoteVideos.forEach((video) => video.remove());
+
+  removeRoomIdFromHeader();
 });
+
+function stopStreamTracks(stream) {
+  if (stream) {
+    console.log(stream.getTracks());
+    stream.getTracks().forEach((track) => track.stop());
+  }
+}
