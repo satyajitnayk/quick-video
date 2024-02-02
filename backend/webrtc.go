@@ -1,32 +1,16 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
-	"net/http"
 
+	"github.com/gorilla/websocket"
 	"github.com/pion/rtp"
 	"github.com/pion/webrtc/v3"
 )
 
-func handleWebsocket(w http.ResponseWriter, r *http.Request) {
+// Get or create the room
+func HandleWebrtc(conn *websocket.Conn, roomID string) {
 
-	// Upgrade HTTP connection to WebSocket
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Failed to upgrade to websocket: ", err)
-		return
-	}
-	defer conn.Close()
-
-	// Read room ID from URL query parameter
-	roomID := r.URL.Query().Get("roomID")
-	if roomID == "" {
-		http.Error(w, "Room ID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Get or create the room
 	room := GetOrCreateRoom(roomID)
 
 	// Add client to the room
@@ -60,29 +44,6 @@ func handleWebsocket(w http.ResponseWriter, r *http.Request) {
 			log.Println("Failed to write ICE candidate to WebSocket:", err)
 		}
 	})
-
-	// peerConnection.OnNegotiationNeeded(func() {
-
-	// 	// Create an offer to initiate the WebRTC session
-	// 	offer, err := peerConnection.CreateOffer(nil)
-	// 	if err != nil {
-	// 		log.Println("Failed to create offer:", err)
-	// 		return
-	// 	}
-
-	// 	// Set the local description of the peer connection
-	// 	err = peerConnection.SetLocalDescription(offer)
-	// 	if err != nil {
-	// 		log.Println("Failed to set local description:", err)
-	// 		return
-	// 	}
-
-	// 	// Send the SDP offer to the remote peer
-	// 	err = conn.WriteJSON(offer)
-	// 	if err != nil {
-	// 		log.Println("Failed to write SDP offer to WebSocket:", err)
-	// 	}
-	// })
 
 	peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 		// Handle incoming media track
@@ -133,12 +94,6 @@ func handleWebsocket(w http.ResponseWriter, r *http.Request) {
 		// Handle incoming data channel
 	})
 
-	// Create a data channel for non-media communication
-	// _, err = peerConnection.CreateDataChannel("data", nil)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	// Handle WebSocket messages
 	for {
 		var msg map[string]interface{}
@@ -149,6 +104,7 @@ func handleWebsocket(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Broadcast the received message to all clients in the room
+
 		room.Broadcast(msg)
 
 		switch msg["type"] {
@@ -202,15 +158,4 @@ func handleWebsocket(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-}
-
-func parseJSON(data interface{}, target interface{}) error {
-	// Convert data directly to JSON bytes
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-
-	// Unmarshal JSON bytes into the target interface
-	return json.Unmarshal(jsonData, target)
 }
