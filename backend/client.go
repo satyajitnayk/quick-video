@@ -142,7 +142,13 @@ func (client *Client) handleSignalMessage(event Event) {
 	}
 }
 
+// handleOffer handles the 'offer' WebRTC signaling event.
+// It unmarshals the offer from the event payload, sets it as the remote description,
+// creates an answer, sets it as the local description, marshals the answer into JSON,
+// and sends it back to the client as a 'answer' signaling event.
 func (client *Client) handleOffer(event Event) {
+	// The offer represents the description of the remote peer's
+	// media capabilities and settings
 	offer := webrtc.SessionDescription{}
 	fmt.Println("event", event.Payload)
 
@@ -151,17 +157,23 @@ func (client *Client) handleOffer(event Event) {
 		return
 	}
 
+	// The remote description defines the configuration of the
+	// remote peer's end of the connection.
 	if err := client.peerConn.SetRemoteDescription(offer); err != nil {
 		log.Printf("Error setting remote description for offer: %v", err)
 		return
 	}
 
+	// An answer is the local peer's response to the offer.
+	// It specifies the local media capabilities and settings.
 	answer, err := client.peerConn.CreateAnswer(nil)
 	if err != nil {
 		log.Printf("Error creating answer: %v", err)
 		return
 	}
 
+	// The local description defines the configuration of the
+	// local peer's end of the connection.
 	if err := client.peerConn.SetLocalDescription(answer); err != nil {
 		log.Printf("Error setting local description for answer: %v", err)
 		return
@@ -173,14 +185,19 @@ func (client *Client) handleOffer(event Event) {
 		return
 	}
 
+	// sends the answer back to the client through the ergess channel
+	// as a 'answer' signaling event.
 	client.ergess <- Event{
 		Type:    EventSignalAnswer,
 		Payload: answerJSON,
 	}
 }
 
+// handleAnswer handles the 'answer' WebRTC signaling event.
+// It unmarshals the answer from the event payload and sets it as the remote description.
 func (client *Client) handleAnswer(event Event) {
 	answer := webrtc.SessionDescription{}
+	// The answer is the remote peer's response to the client's offer.
 	if err := json.Unmarshal(event.Payload, &answer); err != nil {
 		log.Printf("Error unmarshalling answer: %v", err)
 		return
@@ -191,11 +208,16 @@ func (client *Client) handleAnswer(event Event) {
 	}
 }
 
+// handleCandidate handles the 'candidate' WebRTC signaling event.
+// It unmarshals the ICE candidate from the event payload and adds it to the peer connection.
 func (client *Client) handleCandidate(event Event) {
+	// ICE candidates are used to establish peer-to-peer connectivity over the network.
 	// Handle ICE candidate message
 	candidate := webrtc.ICECandidateInit{}
 	json.Unmarshal(event.Payload, &candidate)
 
+	// The ICE candidate contains information needed to establish a direct
+	// connection between peers, such as IP addresses and ports.
 	// Add ICE candidate to the peer connection
 	if err := client.peerConn.AddICECandidate(candidate); err != nil {
 		log.Printf("Error adding ICE candidate: %v", err)
