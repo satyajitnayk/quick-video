@@ -5,12 +5,6 @@ import (
 	"net/http"
 )
 
-const (
-	MessageTypeOffer     = "offer"
-	MessageTypeCandidate = "candidate"
-	MessageTypeAnswer    = "answer"
-)
-
 func main() {
 
 	manager := NewManager()

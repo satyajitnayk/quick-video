@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/pion/webrtc/v3"
 )
 
 const (
@@ -21,6 +22,7 @@ type Client struct {
 	manager    *Manager
 	chatroom   string
 	ergess     chan Event
+	peerConn   *webrtc.PeerConnection
 }
 
 func NewClient(conn *websocket.Conn, manager *Manager) *Client {
@@ -65,10 +67,13 @@ func (client *Client) readMessages() {
 			break
 		}
 
-		if err := client.manager.routeEvent(request, client); err != nil {
-			log.Printf("error handeling message: %v", err)
+		if request.Type == EventSignalOffer || request.Type == EventSignalAnswer || request.Type == EventSignalCandidate {
+			client.handleSignalMessage(request)
+		} else {
+			if err := client.manager.routeEvent(request, client); err != nil {
+				log.Printf("error handeling message: %v", err)
+			}
 		}
-
 	}
 }
 
@@ -121,4 +126,131 @@ func (client *Client) pongHandler(pongMessage string) error {
 	log.Println("pong")
 
 	return client.connection.SetReadDeadline(time.Now().Add(pongWait))
+}
+
+func (client *Client) handleSignalMessage(event Event) {
+	switch event.Type {
+	case EventSignalOffer:
+		client.handleOffer(event)
+	case EventSignalAnswer:
+		client.handleAnswer(event)
+	case EventSignalCandidate:
+		client.handleCandidate(event)
+	default:
+		// Unsupported message type
+		log.Printf("Unsupported signal message type: %s\n", event.Type)
+	}
+}
+
+func (client *Client) handleOffer(event Event) {
+	offer := webrtc.SessionDescription{}
+	fmt.Println("event", event.Payload)
+
+	if err := json.Unmarshal(event.Payload, &offer); err != nil {
+		log.Printf("Error unmarshalling offer: %v", err)
+		return
+	}
+
+	if err := client.peerConn.SetRemoteDescription(offer); err != nil {
+		log.Printf("Error setting remote description for offer: %v", err)
+		return
+	}
+
+	answer, err := client.peerConn.CreateAnswer(nil)
+	if err != nil {
+		log.Printf("Error creating answer: %v", err)
+		return
+	}
+
+	if err := client.peerConn.SetLocalDescription(answer); err != nil {
+		log.Printf("Error setting local description for answer: %v", err)
+		return
+	}
+
+	answerJSON, err := json.Marshal(answer)
+	if err != nil {
+		log.Printf("Error marshalling answer: %v", err)
+		return
+	}
+
+	client.ergess <- Event{
+		Type:    EventSignalAnswer,
+		Payload: answerJSON,
+	}
+}
+
+func (client *Client) handleAnswer(event Event) {
+	answer := webrtc.SessionDescription{}
+	if err := json.Unmarshal(event.Payload, &answer); err != nil {
+		log.Printf("Error unmarshalling answer: %v", err)
+		return
+	}
+
+	if err := client.peerConn.SetRemoteDescription(answer); err != nil {
+		log.Printf("Error setting remote description for answer: %v", err)
+	}
+}
+
+func (client *Client) handleCandidate(event Event) {
+	// Handle ICE candidate message
+	candidate := webrtc.ICECandidateInit{}
+	json.Unmarshal(event.Payload, &candidate)
+
+	// Add ICE candidate to the peer connection
+	if err := client.peerConn.AddICECandidate(candidate); err != nil {
+		log.Printf("Error adding ICE candidate: %v", err)
+	}
+
+}
+
+func (client *Client) setupWebRTC() {
+	// Configuration for WebRTC
+	config := webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: []string{"stun:stun.l.google.com:19302"},
+			},
+		},
+	}
+
+	// create a new peerConnection
+	peerConn, _ := webrtc.NewPeerConnection(config)
+	client.peerConn = peerConn
+
+	// Set up event handlers for ICE connection state change
+	peerConn.OnICECandidate(func(candidate *webrtc.ICECandidate) {
+		if candidate != nil {
+			candidateJSON, _ := json.Marshal(candidate.ToJSON())
+			client.ergess <- Event{
+				Type:    EventSignalCandidate,
+				Payload: candidateJSON,
+			}
+		}
+	})
+
+	// Add streams
+	videoTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: "video/vp8"}, "video", "pion")
+	if err != nil {
+		log.Println("Failed to create video track:", err)
+		return
+	}
+
+	_, err = client.peerConn.AddTrack(videoTrack)
+	if err != nil {
+		log.Println("Failed to add video track:", err)
+		return
+	}
+
+	// for audio stream
+	audioTrack, err := webrtc.NewTrackLocalStaticRTP(webrtc.RTPCodecCapability{MimeType: "audio/opus"}, "audio", "pion")
+	if err != nil {
+		log.Println("Failed to create audio track:", err)
+		return
+	}
+
+	_, err = client.peerConn.AddTrack(audioTrack)
+	if err != nil {
+		log.Println("Failed to add audio track:", err)
+		return
+	}
 }

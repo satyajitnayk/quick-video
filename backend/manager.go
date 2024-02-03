@@ -88,10 +88,9 @@ func (m *Manager) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := NewClient(conn, m)
+	client.setupWebRTC()
 
 	m.addClient(client)
-
-	// HandleWebrtc(conn, roomID)
 
 	go client.readMessages()
 	go client.writeMessages()

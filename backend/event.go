@@ -16,6 +16,10 @@ const (
 	EventSendMessage    = "send_message"
 	EventReceiveMessage = "receive_message"
 	EventChangeChatRoom = "change_chat_room"
+
+	EventSignalOffer     = "offer"
+	EventSignalCandidate = "candidate"
+	EventSignalAnswer    = "answer"
 )
 
 type SendMessageEvent struct {
