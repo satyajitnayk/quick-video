@@ -26,6 +26,20 @@ h1 {
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
+  position: relative;
+}
+
+.remote-video {
+  display: block; /* Ensures the video fills the container */
+}
+
+.video-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 5px;
 }
 
 video {

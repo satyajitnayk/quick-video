@@ -148,17 +148,21 @@ func (client *Client) handleSignalMessage(event Event) {
 // and sends it back to the client as a 'answer' signaling event.
 func (client *Client) handleOffer(event Event) {
 
-	fmt.Println("offerEvent", event.Type, string(event.Payload))
-
 	// The offer represents the description of the remote peer's
 	// media capabilities and settings
 	offer := webrtc.SessionDescription{}
-	if err := json.Unmarshal(event.Payload, &offer); err != nil {
+
+	type OfferPayload struct {
+		Offer json.RawMessage `json:"offer"`
+	}
+
+	var offerPayload OfferPayload
+	json.Unmarshal(event.Payload, &offerPayload)
+
+	if err := json.Unmarshal(offerPayload.Offer, &offer); err != nil {
 		log.Printf("Error unmarshalling offer: %v", err)
 		return
 	}
-
-	fmt.Println("offer", string(offer.SDP))
 
 	// The remote description defines the configuration of the
 	// remote peer's end of the connection.

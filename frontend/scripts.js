@@ -2,6 +2,7 @@ let localStream, remoteStream, peerConnection, ws, remoteVideo;
 
 const videosContainer = document.querySelector('.videos');
 const localVideo = document.querySelector('.local-video');
+
 const startButton = document.querySelector('.start-button');
 const endButton = document.querySelector('.end-button');
 const roomIdHeader = document.querySelector('.roomId-header');
@@ -63,25 +64,17 @@ function connectToWebSocket(roomId) {
   };
 
   ws.onmessage = async (event) => {
-    console.log('Received WebSocket message:', event.data);
     try {
-      const message = JSON.parse(event.data);
-      if (message.type == 'offer') {
-        console.log('Received offer:', message.offer);
-        await handleOffer(message.offer);
-      } else if (message.type == 'candidate') {
-        console.log('Received ICE candidate:', message.candidate);
-        handleCandidate(message.candidate);
-      } else {
-        console.log('Unknown message type:', message.type);
-      }
+      const parsedEvent = Object.assign(new Event(), JSON.parse(event.data));
+
+      await routeEvent(parsedEvent);
     } catch (error) {
       console.error('Error parsing WebSocket message:', error);
     }
   };
 }
 
-function routeEvent(event) {
+async function routeEvent(event) {
   if (!event.type) {
     alert('no type field in the event');
   }
@@ -95,8 +88,17 @@ function routeEvent(event) {
       appendChatMessage(messageEvent);
       break;
 
+    case EventTypes.SIGNAL_OFFER:
+      await handleOffer(event.payload);
+      break;
+    case EventTypes.SIGNAL_CANDIDATE:
+      handleCandidate(event.payload);
+      break;
+    case EventTypes.SIGNAL_ANSWER:
+      await handleAnswer(event.payload);
+      break;
     default:
-      alert('unsupported message type');
+      alert('unsupported event type', event.type);
       break;
   }
 }
@@ -159,6 +161,16 @@ function handleCandidate(candidate) {
   }
 }
 
+// Handle received answer
+async function handleAnswer(answer) {
+  try {
+    const rtcAnswer = new RTCSessionDescription(answer);
+    await peerConnection.setRemoteDescription(rtcAnswer);
+  } catch (error) {
+    console.error('Error handling answer:', error);
+  }
+}
+
 // Set up media devices
 async function setupMediaDevices() {
   try {
@@ -177,20 +189,52 @@ async function startVideoCall() {
     const configuration = {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     };
-    const peerConnection = new RTCPeerConnection(configuration);
+    peerConnection = new RTCPeerConnection(configuration);
 
     // Add local stream to peer connection
-    localStream
-      .getTracks()
-      .forEach((track) => peerConnection.addTrack(track, localStream));
+    if (localStream) {
+      localStream
+        .getTracks()
+        .forEach((track) => peerConnection.addTrack(track, localStream));
+    }
+
+    // Set to keep track of added remote tracks
+    let addedRemoteTracks = new Set();
 
     // Handle remote tracks
     peerConnection.ontrack = function (event) {
-      if (!remoteStream) {
-        remoteStream = new MediaStream();
-        remoteVideo.srcObject = remoteStream;
+      console.log('remote stream', event.streams[0]);
+      console.log('local stream', localStream);
+      if (event.streams[0] !== localStream) {
+        if (!remoteStream) {
+          remoteStream = new MediaStream();
+          if (remoteVideo) {
+            remoteVideo.srcObject = remoteStream;
+          }
+        }
+        // Check if the track has not been added before
+        if (!addedRemoteTracks.has(event.track.id)) {
+          // Add the received track to the remote stream
+          remoteStream.addTrack(event.track);
+
+          // Add the track to the set of added remote tracks
+          addedRemoteTracks.add(event.track.id);
+
+          // Create a new video element for each remote stream
+          const newVideoContainer = document.createElement('div');
+          newVideoContainer.className = 'video-conatiner';
+
+          const newRemoteVideo = document.createElement('video');
+          newRemoteVideo.className = 'remote-video';
+          newRemoteVideo.autoplay = true;
+
+          // Attach the remote stream to the new video element
+          newRemoteVideo.srcObject = event.streams[0];
+          newVideoContainer.appendChild(newRemoteVideo);
+
+          videosContainer.appendChild(newVideoContainer);
+        }
       }
-      remoteStream.addTrack(event.track);
     };
 
     // Create offer
@@ -203,8 +247,6 @@ async function startVideoCall() {
         sendEvent('candidate', { candidate: event.candidate });
       }
     };
-
-    console.log('offer descripition', peerConnection.localDescription);
     // send offer to backend using websocket
     sendEvent(EventTypes.SIGNAL_OFFER, {
       offer: peerConnection.localDescription,
