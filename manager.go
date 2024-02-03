@@ -15,7 +15,7 @@ var websocketUpgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		// Check the origin header and allow connections from trusted origins
 		allowedOrigins := map[string]bool{
-			"http://127.0.0.1:5500": true,
+			"http://localhost:8080": true,
 		}
 		origin := r.Header.Get("Origin")
 		return allowedOrigins[origin]

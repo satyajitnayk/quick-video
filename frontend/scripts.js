@@ -7,7 +7,7 @@ const endButton = document.querySelector('.end-button');
 const roomIdHeader = document.querySelector('.roomId-header');
 
 // WebSocket endpoint URL
-const wsEndpoint = 'ws://localhost:8080/ws';
+const wsEndpoint = `ws://${document.location.host}/ws`;
 
 class Event {
   constructor(type, payload) {
@@ -214,63 +214,65 @@ async function startVideoCall() {
   }
 }
 
-// Start call
-startButton.addEventListener('click', async () => {
-  const roomId = prompt('Enter room ID:');
-  if (roomId) {
-    roomIdHeader.innerHTML = roomId;
-    try {
-      connectToWebSocket(roomId);
-
-      ws.onopen = async () => {
-        try {
-          await setupMediaDevices();
-          await startVideoCall();
-        } catch (error) {
-          console.error(
-            'Error accessing media devices or creating offer:',
-            error
-          );
-        }
-      };
-    } catch (error) {
-      console.error('WebSocket connection failed:', error);
-      alert('WebSocket connection failed. Please try again.');
-    }
-  }
-});
-
-// End call
-endButton.addEventListener('click', () => {
-  if (localStream) {
-    stopStreamTracks(localStream);
-  }
-
-  if (localStream.srcObject) {
-    stopStreamTracks(localVideo.srcObject);
-    localVideo.srcObject = null;
-  }
-
-  if (remoteStream) {
-    stopStreamTracks(remoteStream);
-  }
-
-  if (peerConnection) {
-    peerConnection.close();
-  }
-
-  if (ws) {
-    ws.close();
-  }
-
-  // Clear all remote video streams from the container
-  remoteVideo.srcObject = null;
-  roomIdHeader.innerHTML = '';
-});
-
 function stopStreamTracks(stream) {
   if (stream) {
     console.log(stream.getTracks());
     stream.getTracks().forEach((track) => track.stop());
   }
 }
+
+window.onload = function () {
+  // Start call
+  startButton.addEventListener('click', async () => {
+    const roomId = prompt('Enter room ID:');
+    if (roomId) {
+      roomIdHeader.innerHTML = roomId;
+      try {
+        connectToWebSocket(roomId);
+
+        ws.onopen = async () => {
+          try {
+            await setupMediaDevices();
+            await startVideoCall();
+          } catch (error) {
+            console.error(
+              'Error accessing media devices or creating offer:',
+              error
+            );
+          }
+        };
+      } catch (error) {
+        console.error('WebSocket connection failed:', error);
+        alert('WebSocket connection failed. Please try again.');
+      }
+    }
+  });
+
+  // End call
+  endButton.addEventListener('click', () => {
+    if (localStream) {
+      stopStreamTracks(localStream);
+    }
+
+    if (localStream.srcObject) {
+      stopStreamTracks(localVideo.srcObject);
+      localVideo.srcObject = null;
+    }
+
+    if (remoteStream) {
+      stopStreamTracks(remoteStream);
+    }
+
+    if (peerConnection) {
+      peerConnection.close();
+    }
+
+    if (ws) {
+      ws.close();
+    }
+
+    // Clear all remote video streams from the container
+    remoteVideo.srcObject = null;
+    roomIdHeader.innerHTML = '';
+  });
+};
