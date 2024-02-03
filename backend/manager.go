@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
+var websocketUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
@@ -51,7 +51,7 @@ func (m *Manager) routeEvent(event Event, client *Client) error {
 		}
 		return nil
 	} else {
-		return errors.New("there is no such event type")
+		return errors.New("there is no such event type " + event.Type + "\n" + string(event.Payload))
 	}
 }
 
@@ -74,12 +74,11 @@ func (m *Manager) removeClient(client *Client) {
 
 func (m *Manager) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 	// Upgrade HTTP connection to WebSocket
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := websocketUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Failed to upgrade to websocket: ", err)
 		return
 	}
-	defer conn.Close()
 
 	// Read room ID from URL query parameter
 	roomID := r.URL.Query().Get("roomID")
@@ -92,5 +91,8 @@ func (m *Manager) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	m.addClient(client)
 
-	HandleWebrtc(conn, roomID)
+	// HandleWebrtc(conn, roomID)
+
+	go client.readMessages()
+	go client.writeMessages()
 }

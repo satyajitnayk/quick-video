@@ -9,6 +9,43 @@ const roomIdHeader = document.querySelector('.roomId-header');
 // WebSocket endpoint URL
 const wsEndpoint = 'ws://localhost:8080/ws';
 
+class Event {
+  constructor(type, payload) {
+    this.type = type;
+    this.payload = payload;
+  }
+}
+
+class SendMessageEvent {
+  constructor(message, from) {
+    this.message = message;
+    this.from = from;
+  }
+}
+
+class ReceiveMessageEvent {
+  constructor(message, from, sent) {
+    this.message = message;
+    this.from = from;
+    this.sent = sent;
+  }
+}
+
+class ChangeChtRoomEvent {
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+const EventTypes = {
+  RECEIVE_MESSAGE: 'receive_message',
+  SEND_MESSAGE: 'send_message',
+  CHANGE_CHATROOM: 'change_chatroom',
+};
+
+// TODO
+function changeChatRoom() {}
+
 // Connect to WebSocket server
 function connectToWebSocket(roomId) {
   ws = new WebSocket(`${wsEndpoint}?roomID=${roomId}`);
@@ -25,6 +62,55 @@ function connectToWebSocket(roomId) {
       handleCandidate(message.candidate);
     }
   };
+}
+
+function routeEvent(event) {
+  if (!event.type) {
+    alert('no type field in the event');
+  }
+
+  switch (event.type) {
+    case EventTypes.RECEIVE_MESSAGE:
+      const messageEvent = Object.assign(
+        new ReceiveMessageEvent(),
+        event.payload
+      );
+      appendChatMessage(messageEvent);
+      break;
+
+    default:
+      alert('unsupported message type');
+      break;
+  }
+}
+
+function appendChatMessage(messageEvent) {
+  const date = new Date(messageEvent.sent);
+  const formattedMsg = `${messageEvent.from} \n${date.toLocaleString()}: ${
+    messageEvent.message
+  }`;
+
+  const textarea = document.getElementById('chatmessages');
+  // append new msg to text area
+  textarea.innerHTML = textarea.innerHTML + '\n' + formattedMsg;
+  // scroll to height
+  textarea.scrollTop = textarea.scrollHeight;
+}
+
+function sendMessage() {
+  let newMessage = document.getElementById('message');
+  if (newMessage) {
+    // TODO: pick username from client side
+    let outgoingEvent = new SendMessageEvent(newmessage.value, 'user1');
+    sendEvent('send_message', outgoingEvent);
+  }
+  return false;
+}
+
+function sendEvent(eventName, payload) {
+  const event = new Event(eventName, payload);
+
+  ws.send(JSON.stringify(event));
 }
 
 // Handle received offer
@@ -50,19 +136,11 @@ function handleCandidate(candidate) {
   }
 }
 
-function addRoomIdToHeader(roomId) {
-  roomIdHeader.innerHTML = roomId;
-}
-
-function removeRoomIdFromHeader() {
-  roomIdHeader.innerHTML = '';
-}
-
 // Start call
 startButton.addEventListener('click', async () => {
   const roomId = prompt('Enter room ID:');
   if (roomId) {
-    addRoomIdToHeader(roomId);
+    roomIdHeader.innerHTML = roomId;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -130,7 +208,7 @@ endButton.addEventListener('click', () => {
   const remoteVideos = document.querySelectorAll('.remote-video');
   remoteVideos.forEach((video) => video.remove());
 
-  removeRoomIdFromHeader();
+  roomIdHeader.innerHTML = '';
 });
 
 function stopStreamTracks(stream) {

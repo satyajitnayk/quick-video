@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -31,7 +32,9 @@ func NewClient(conn *websocket.Conn, manager *Manager) *Client {
 }
 
 func (client *Client) readMessages() {
+	fmt.Println("inside readmessages")
 	defer func() {
+		fmt.Println("closing readmessages")
 		client.manager.removeClient(client)
 	}()
 
@@ -41,7 +44,7 @@ func (client *Client) readMessages() {
 		return
 	}
 
-	client.connection.SetReadLimit(1024)
+	client.connection.SetReadLimit(1024 * 20)
 
 	client.connection.SetPongHandler(client.pongHandler)
 
@@ -70,7 +73,10 @@ func (client *Client) readMessages() {
 }
 
 func (client *Client) writeMessages() {
+	fmt.Println("inside writemessages")
+
 	defer func() {
+		fmt.Println("closing writemessages")
 		client.manager.removeClient(client)
 	}()
 
