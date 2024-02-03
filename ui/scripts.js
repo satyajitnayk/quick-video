@@ -1,4 +1,4 @@
-let localStream, remoteStream, peerConnection, ws;
+let localStream, remoteStream, peerConnection, ws, remoteVideo;
 
 const videosContainer = document.querySelector('.videos');
 const localVideo = document.querySelector('.local-video');
@@ -41,6 +41,9 @@ const EventTypes = {
   RECEIVE_MESSAGE: 'receive_message',
   SEND_MESSAGE: 'send_message',
   CHANGE_CHATROOM: 'change_chatroom',
+  SIGNAL_OFFER: 'offer',
+  SIGNAL_ANSWER: 'answer',
+  SIGNAL_CANDIDATE: 'candidate',
 };
 
 // TODO
@@ -54,12 +57,26 @@ function connectToWebSocket(roomId) {
     console.log('WebSocket connected');
   };
 
+  ws.onerror = (error) => {
+    console.error('WebSocket connection failed:', error);
+    alert('WebSocket connection failed. Please try again.');
+  };
+
   ws.onmessage = async (event) => {
-    const message = JSON.parse(event.data);
-    if (message.type == 'offer') {
-      await handleOffer(message.offer);
-    } else if (message.type == 'candidate') {
-      handleCandidate(message.candidate);
+    console.log('Received WebSocket message:', event.data);
+    try {
+      const message = JSON.parse(event.data);
+      if (message.type == 'offer') {
+        console.log('Received offer:', message.offer);
+        await handleOffer(message.offer);
+      } else if (message.type == 'candidate') {
+        console.log('Received ICE candidate:', message.candidate);
+        handleCandidate(message.candidate);
+      } else {
+        console.log('Unknown message type:', message.type);
+      }
+    } catch (error) {
+      console.error('Error parsing WebSocket message:', error);
     }
   };
 }
@@ -101,27 +118,32 @@ function sendMessage() {
   let newMessage = document.getElementById('message');
   if (newMessage) {
     // TODO: pick username from client side
-    let outgoingEvent = new SendMessageEvent(newmessage.value, 'user1');
-    sendEvent('send_message', outgoingEvent);
+    let outgoingEvent = new SendMessageEvent(newMessage.value, 'user1');
+    sendEvent(EventTypes.SEND_MESSAGE, outgoingEvent);
   }
   return false;
 }
 
+// Send event to backend via WebSocket
 function sendEvent(eventName, payload) {
   const event = new Event(eventName, payload);
-
   ws.send(JSON.stringify(event));
 }
 
 // Handle received offer
 async function handleOffer(offer) {
   try {
-    await peerConnection.setRemoteDescription(offer);
+    const rtcOffer = new RTCSessionDescription(offer);
+    console.log('rtcoffer', rtcOffer);
+
+    await peerConnection.setRemoteDescription(rtcOffer);
+
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    // Send answer to backend via WebSocket
-    ws.send(JSON.stringify({ type: 'answer', answer }));
+    sendEvent(EventTypes.SIGNAL_ANSWER, {
+      answer: peerConnection.localDescription,
+    });
   } catch (error) {
     console.error('Error handling offer:', error);
   }
@@ -130,9 +152,65 @@ async function handleOffer(offer) {
 // Handle received ICE candidate
 function handleCandidate(candidate) {
   try {
-    peerConnection.addIceCandidate(candidate);
+    const rtcCandidate = new RTCIceCandidate(candidate);
+    peerConnection.addIceCandidate(rtcCandidate);
   } catch (error) {
     console.error('Error adding ICE candidate:', error);
+  }
+}
+
+// Set up media devices
+async function setupMediaDevices() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    localVideo.srcObject = localStream;
+  } catch (error) {
+    console.error('Error accessing media devices:', error);
+  }
+}
+
+async function startVideoCall() {
+  try {
+    const configuration = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    };
+    const peerConnection = new RTCPeerConnection(configuration);
+
+    // Add local stream to peer connection
+    localStream
+      .getTracks()
+      .forEach((track) => peerConnection.addTrack(track, localStream));
+
+    // Handle remote tracks
+    peerConnection.ontrack = function (event) {
+      if (!remoteStream) {
+        remoteStream = new MediaStream();
+        remoteVideo.srcObject = remoteStream;
+      }
+      remoteStream.addTrack(event.track);
+    };
+
+    // Create offer
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+
+    // Set up offer to send to the other peer
+    peerConnection.onicecandidate = function (event) {
+      if (event.candidate) {
+        sendEvent('candidate', { candidate: event.candidate });
+      }
+    };
+
+    console.log('offer descripition', peerConnection.localDescription);
+    // send offer to backend using websocket
+    sendEvent(EventTypes.SIGNAL_OFFER, {
+      offer: peerConnection.localDescription,
+    });
+  } catch (error) {
+    console.error('Error creating video call:', error);
   }
 }
 
@@ -142,41 +220,22 @@ startButton.addEventListener('click', async () => {
   if (roomId) {
     roomIdHeader.innerHTML = roomId;
     try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      localVideo.srcObject = localStream;
-
       connectToWebSocket(roomId);
 
-      peerConnection = new RTCPeerConnection();
-      localStream
-        .getTracks()
-        .forEach((track) => peerConnection.addTrack(track, localStream));
-
-      // Handle incoming tracks
-      peerConnection.ontrack = (event) => {
-        console.log('Incoming remote tracks');
-        const remoteVideoContainer = document.createElement('div');
-        remoteVideoContainer.classList.add('remote-video'); // Add a class for styling
-
-        const remoteVideo = document.createElement('video');
-        remoteStream = event.streams[0];
-        remoteVideo.srcObject = remoteStream;
-        remoteVideo.autoplay = true;
-
-        remoteVideoContainer.appendChild(remoteVideo);
-        videosContainer.appendChild(remoteVideoContainer);
+      ws.onopen = async () => {
+        try {
+          await setupMediaDevices();
+          await startVideoCall();
+        } catch (error) {
+          console.error(
+            'Error accessing media devices or creating offer:',
+            error
+          );
+        }
       };
-
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-
-      // send offer to backend using websocket
-      ws.send(JSON.stringify({ type: 'offer', offer }));
     } catch (error) {
-      console.error('Error accessing media devices or creating offer:', error);
+      console.error('WebSocket connection failed:', error);
+      alert('WebSocket connection failed. Please try again.');
     }
   }
 });
@@ -205,9 +264,7 @@ endButton.addEventListener('click', () => {
   }
 
   // Clear all remote video streams from the container
-  const remoteVideos = document.querySelectorAll('.remote-video');
-  remoteVideos.forEach((video) => video.remove());
-
+  remoteVideo.srcObject = null;
   roomIdHeader.innerHTML = '';
 });
 

@@ -150,8 +150,6 @@ func (client *Client) handleOffer(event Event) {
 	// The offer represents the description of the remote peer's
 	// media capabilities and settings
 	offer := webrtc.SessionDescription{}
-	fmt.Println("event", event.Payload)
-
 	if err := json.Unmarshal(event.Payload, &offer); err != nil {
 		log.Printf("Error unmarshalling offer: %v", err)
 		return

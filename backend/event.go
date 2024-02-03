@@ -33,5 +33,5 @@ type ReceiveMessageEvent struct {
 }
 
 type ChangeChatRoomEvent struct {
-	Name string `josn:"name"`
+	Name string `json:"name"`
 }
