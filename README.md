@@ -6,6 +6,20 @@ A video &amp; audio call app written using golang &amp; react
 
 [WebRTC in 100 Seconds ](https://www.youtube.com/watch?v=WmR9IMUD_CY&ab_channel=Fireship)
 
+### Development
+
+Build images;
+
+```sh
+make build-dev
+```
+
+For development;
+
+```sh
+make run-dev
+```
+
 ### Credit:
 
 [Bora Tanrikulu](https://github.com/boratanrikulu/quik)
