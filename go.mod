@@ -7,6 +7,7 @@ require (
 	github.com/gofiber/template/html/v2 v2.1.0
 	github.com/gofiber/websocket/v2 v2.2.1
 	github.com/google/uuid v1.6.0
+	github.com/pion/rtcp v1.2.12
 )
 
 require (
@@ -18,7 +19,6 @@ require (
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/mdns v0.0.8 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
-	github.com/pion/rtcp v1.2.12 // indirect
 	github.com/pion/rtp v1.8.3 // indirect
 	github.com/pion/sctp v1.8.8 // indirect
 	github.com/pion/sdp/v3 v3.0.6 // indirect
@@ -35,7 +35,7 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/fasthttp/websocket v1.5.3 // indirect
+	github.com/fasthttp/websocket v1.5.3
 	github.com/gofiber/template v1.8.2 // indirect
 	github.com/gofiber/utils v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect

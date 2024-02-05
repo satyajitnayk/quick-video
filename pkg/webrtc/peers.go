@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	RoomLock sync.RWMutex
-	Rooms    map[string]*Room
-	Streams  map[string]*Room
+	RoomsLock sync.RWMutex
+	Rooms     map[string]*Room
+	Streams   map[string]*Room
 )
 
 var (

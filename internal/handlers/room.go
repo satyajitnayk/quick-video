@@ -53,8 +53,8 @@ func RoomWS(c *websocket.Conn) {
 }
 
 func createOrGetRoom(uuid string) (string, string, *w.Room) {
-	w.RoomLock.Lock()
-	defer w.RoomLock.Unlock()
+	w.RoomsLock.Lock()
+	defer w.RoomsLock.Unlock()
 
 	h := sha256.New()
 	h.Write([]byte(uuid))
@@ -88,13 +88,13 @@ func ViewRoomWS(c *websocket.Conn) {
 		return
 	}
 
-	w.RoomLock.Lock()
+	w.RoomsLock.Lock()
 	if peer, ok := w.Rooms[uuid]; ok {
-		w.RoomLock.Unlock()
+		w.RoomsLock.Unlock()
 		roomViewerConn(c, peer.Peers)
 		return
 	}
-	w.RoomLock.Unlock()
+	w.RoomsLock.Unlock()
 }
 
 func roomViewerConn(c *websocket.Conn, p *w.Peers) {

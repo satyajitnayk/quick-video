@@ -18,9 +18,9 @@ func ChatRoomWS(c *websocket.Conn) {
 		return
 	}
 
-	w.RoomLock.Lock()
+	w.RoomsLock.Lock()
 	room := w.Rooms[uuid]
-	w.RoomLock.Unlock()
+	w.RoomsLock.Unlock()
 	if room == nil {
 		return
 	}
@@ -31,15 +31,15 @@ func ChatRoomWS(c *websocket.Conn) {
 	chat.PeerChatConn(c.Conn, room.Hub)
 }
 
-func chatStreamWS(c *websocket.Conn) {
+func ChatStreamWS(c *websocket.Conn) {
 	suuid := c.Params("suuid")
 	if suuid == "" {
 		return
 	}
 
-	w.RoomLock.Lock()
+	w.RoomsLock.Lock()
 	if stream, ok := w.Streams[suuid]; ok {
-		w.RoomLock.Unlock()
+		w.RoomsLock.Unlock()
 		if stream.Hub == nil {
 			hub := chat.NewHub()
 			stream.Hub = hub
@@ -48,5 +48,5 @@ func chatStreamWS(c *websocket.Conn) {
 		chat.PeerChatConn(c.Conn, stream.Hub)
 		return
 	}
-	w.RoomLock.Unlock()
+	w.RoomsLock.Unlock()
 }

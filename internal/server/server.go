@@ -44,11 +44,11 @@ func Run() error {
 	app.Get("/room/:uuid/chat/ws", websocket.New(handlers.ChatRoomWS))
 	app.Get("/room/:uuid/viewer/ws", websocket.New(handlers.ViewRoomWS))
 	app.Get("/stream/:suuid", handlers.Stream)
-	app.Get("/stream/:suuid/ws", websocket.New(handlers.streamWS, websocket.Config{
+	app.Get("/stream/:suuid/ws", websocket.New(handlers.StreamWS, websocket.Config{
 		HandshakeTimeout: 10 * time.Second,
 	}))
-	app.Get("/stream/:suuid/chat/ws", websocket.New(handlers.chatStreamWS))
-	app.Get("/stream/:suuid/viewer/ws", websocket.New(handlers.streamViewerWS))
+	app.Get("/stream/:suuid/chat/ws", websocket.New(handlers.ChatStreamWS))
+	app.Get("/stream/:suuid/viewer/ws", websocket.New(handlers.StreamViewerWS))
 	app.Static("/", "./assets")
 
 	w.Rooms = make(map[string]*w.Room)
