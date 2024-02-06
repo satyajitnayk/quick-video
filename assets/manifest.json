@@ -9,7 +9,7 @@
       "type": "image/png"
     }
   ],
-  "name": "Golang Videochat App",
-  "short_name": "Videochat App",
+  "name": "Quik.video",
+  "short_name": "quik.video",
   "start_url": "/"
 }

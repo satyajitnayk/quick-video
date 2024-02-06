@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   server:
-    image: v
+    image: quick-video
     deploy:
       replicas: 1
     restart: always
