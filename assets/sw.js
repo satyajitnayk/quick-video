@@ -8,14 +8,7 @@ self.addEventListener('install', (e) => {
         '/javascript/peer.js',
         '/javascript/stream.js',
         '/javascript/viewer.js',
-        '/font/v.eot',
-        '/font/v.svg',
-        '/font/v.ttf',
-        '/font/v.woff',
-        '/font/v.woff2',
         '/stylesheets/main.css',
-        '/stylesheets/fonts.css',
-        '/stylesheets/bulma/css/bulma.min.css',
       ]);
     })
   );

@@ -36,7 +36,7 @@ func Run() error {
 
 	app.Get("/", handlers.Welcome)
 	app.Get("/room/create", handlers.CreateRoom)
-	app.Get("/rom/:uuid", handlers.Room)
+	app.Get("/room/:uuid", handlers.Room)
 	app.Get("/room/:uuid/ws", websocket.New(handlers.RoomWS, websocket.Config{
 		HandshakeTimeout: 10 * time.Second,
 	}))

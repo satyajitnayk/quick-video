@@ -20,6 +20,14 @@ For development;
 make run-dev
 ```
 
+```sh
+# List docker images
+docker images
+
+# remove docker image
+docker rmi <imagename/id>
+```
+
 ### Credit:
 
 [Bora Tanrikulu](https://github.com/boratanrikulu/quik)

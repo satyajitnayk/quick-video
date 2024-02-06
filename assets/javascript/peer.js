@@ -49,11 +49,11 @@ function connect(stream) {
   });
 
   pc.ontrack = function (event) {
-    if (event.track.id === 'audio') {
+    if (event.track.kind === 'audio') {
       return;
     }
 
-    col = document.getElement('div');
+    col = document.createElement('div');
     col.className = 'column is-6 peer';
     let el = document.createElement(event.track.kind);
     el.srcObject = event.streams[0];
@@ -65,11 +65,11 @@ function connect(stream) {
     document.getElementById('nocon').style.display = 'none';
     document.getElementById('videos').appendChild(col);
 
-    event.track.onmute = () => {
+    event.track.onmute = function () {
       el.play();
     };
 
-    event.streams[0].removeTrack = ({ track }) => {
+    event.streams[0].removeTrack = () => {
       if (el.parentNode) {
         el.parentNode.remove();
       }
@@ -99,7 +99,7 @@ function connect(stream) {
     console.log('error: ', event);
   });
 
-  ws.onclose = function (evt) {
+  ws.onclose = function () {
     console.log('websocket has closed');
     pc.close();
     pc = null;

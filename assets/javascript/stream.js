@@ -4,13 +4,21 @@ function connectStream() {
   let pc = new RTCPeerConnection({
     iceServers: [
       {
-        urls: 'stun:turn.videochat:3478',
+        urls: 'stun:relay.metered.ca:80',
       },
       {
-        urls: 'turn:turn.videochat:3478',
-        username: 'satya',
-        credential: 'satya',
+        urls: 'turn:relay.metered.ca:80',
+        username: 'f656bb327ada11408d2cd592',
+        credential: 'D5FTwyiln3XE0vFq',
       },
+      // {
+      //   urls: 'stun:turn.videochat:3478',
+      // },
+      // {
+      //   urls: 'turn:turn.videochat:3478',
+      //   username: 'satya',
+      //   credential: 'satya',
+      // },
     ],
   });
 
@@ -41,11 +49,11 @@ function connectStream() {
     document.getElementById('nocon').style.display = 'none';
     document.getElementById('videos').appendChild(col);
 
-    event.track.onmute = function (event) {
+    event.track.onmute = function () {
       el.play();
     };
 
-    event.streams[0].onremovetrack = ({ track }) => {
+    event.streams[0].onremovetrack = () => {
       if (el.parentNode) {
         el.parentNode.remove();
       }
