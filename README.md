@@ -30,4 +30,4 @@ docker rmi <imagename/id>
 
 ### Credit:
 
-[Bora Tanrikulu](https://github.com/boratanrikulu/quik)
+[Bora Tanrikulu](https://github.com/boratanrikulu/)
